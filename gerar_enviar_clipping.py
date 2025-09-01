@@ -96,7 +96,7 @@ def baixar_diarios_e_converter_para_txt():
         if spider.startswith("rj_"):
             spiders_executados.append(spider)
             logger.info(f"🚀 Executando {spider}")
-            subprocess.run(["scrapy", "crawl", spider, "-a", f"start_date=2025-08-29", "-a", f"end_date=2025-08-29", "-o", METADADOS, "-s", f"LOG_FILE={PASTA_ARQUIVOS}/log.txt"])
+            subprocess.run(["scrapy", "crawl", spider, "-a", f"start_date={ontem_fmt_iso8601}", "-a", f"end_date={ontem_fmt_iso8601}", "-o", METADADOS, "-s", f"LOG_FILE={PASTA_ARQUIVOS}/log.txt"])
 
     pdf_para_txt()
     spiders_sem_arquivos(spiders_executados)
@@ -215,8 +215,8 @@ def listar_metadados():
         
 
 def gerar_corpo_email(titulo, termos):
-    link_qd = "<a href=\"https://queridodiario.ok.org.br/cidades-disponiveis\">Querido Diário</a>"
-    html = f"<html><body><h1>📬 {titulo}</h1><p>Consulta realizada nos municípios jurisdicionados disponíveis no {link_qd} </p><hr>"
+    link_git = "<a href=\"https://github.com/cad-ti/diario_oficial_bot/tree/main/diario_oficial_bot/spiders/rj\">Diário Oficial Bot - TCE-RJ</a>"
+    html = f"<html><body><h1>📬 {titulo}</h1><p>Consulta realizada nos jurisdicionados disponíveis no {link_git} </p><hr>"
     possui_resultado = False
     for termo in termos:
         resultados = []
