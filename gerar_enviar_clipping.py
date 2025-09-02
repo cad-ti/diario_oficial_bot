@@ -84,7 +84,8 @@ def spiders_sem_arquivos(spiders_executados):
         nomes_csv = [row["name"] for row in reader]
 
     nao_encontrados = [spider for spider in spiders_executados if spider not in nomes_csv]
-    logger.warning(f"⚠️ Spiders sem arquivos baixados: {"\n".join(nao_encontrados)}")
+    if nao_encontrados:
+        logger.warning(f"⚠️ Spiders sem arquivos baixados:\n\t" + "\n\t".join(nao_encontrados))
 
 
 def baixar_diarios_e_converter_para_txt():
