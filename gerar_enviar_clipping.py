@@ -103,17 +103,26 @@ def baixar_diarios_e_converter_para_txt():
     spiders_sem_arquivos(spiders_executados)
 
 
+def _normalizar_token(w: str) -> str:
+    # Remove pontuação no INÍCIO e no FIM + lowercase
+    # Obs: \w em Python é Unicode-aware, então mantém letras acentuadas
+    return re.sub(r'^\W+|\W+$', '', w.lower())
+
 def termo_encontrado(texto, termo, contexto=100):
     """
     Retorna trechos com todas as ocorrências do termo (ou par de termos com ~N),
     unindo trechos sobrepostos e preservando pontuação.
     """
-    termo = normalizar_texto(termo)
-    tokens = re.findall(r"\S+|\n", texto)  # separa por espaços, mas mantém pontuação
-    tokens_lower = [re.sub(r"\W+$", "", w.lower()) for w in tokens]  # para comparação, remove pontuação só no fim
+    termo = normalizar_texto(termo).strip()
+
+    tokens = re.findall(r"\S+|\n", texto)
+    tokens_norm = [_normalizar_token(t) for t in tokens]
 
     trechos_idx = []
     trechos_final = []
+
+    seq_palavras = [(i, t) for i, t in enumerate(tokens_norm) if t]
+    mapa_ordem = {i: k for k, (i, _) in enumerate(seq_palavras)}  # mapeia índice original -> posição na sequência de palavras
 
     # --- 1) Padrão "palavra1+palavra2"~N ---
     m = re.match(r'^"(.+?)"~(\d+)$', termo)
@@ -126,20 +135,26 @@ def termo_encontrado(texto, termo, contexto=100):
             return []
 
         p1, p2 = palavras[0], palavras[1]
-        posicoes_p1 = [i for i, w in enumerate(tokens_lower) if w == p1]
-        posicoes_p2 = [i for i, w in enumerate(tokens_lower) if w == p2]
+
+        posicoes_p1 = [i for i, w in enumerate(tokens_norm) if w == p1]
+        posicoes_p2 = [i for i, w in enumerate(tokens_norm) if w == p2]
 
         if not posicoes_p1 or not posicoes_p2:
             return []
 
         for i1 in posicoes_p1:
+            if i1 not in mapa_ordem:
+                continue
             for i2 in posicoes_p2:
-                if i1 < i2 and (i2 - i1) <= distancia_max:
+                if i2 not in mapa_ordem:
+                    continue
+                # mede distância em PALAVRAS (ignorando pontuação)
+                if i1 < i2 and (mapa_ordem[i2] - mapa_ordem[i1]) <= distancia_max:
                     inicio = max(i1 - contexto, 0)
-                    fim = min(i2 + contexto, len(tokens))
+                    fim = min(i2 + contexto + 1, len(tokens))
                     trechos_idx.append((inicio, fim, [p1, p2]))
 
-    # --- 2) Termo simples ---
+    # --- 2) Termo simples (palavra única OU frase entre aspas) ---
     else:
         termo_simples = termo
         if termo_simples.startswith('"') and termo_simples.endswith('"'):
@@ -149,35 +164,54 @@ def termo_encontrado(texto, termo, contexto=100):
         if not termo_simples or '+' in termo_simples or '~' in termo_simples:
             return []
 
-        indices = [i for i, w in enumerate(tokens_lower) if w == termo_simples]
-        if not indices:
-            return []
+        palavras_busca = termo_simples.split()
 
-        for idx in indices:
-            inicio = max(idx - contexto, 0)
-            fim = min(idx + contexto, len(tokens))
-            trechos_idx.append((inicio, fim, [termo_simples]))
+        # 2.a) Palavra única
+        if len(palavras_busca) == 1:
+            alvo = palavras_busca[0]
+            indices = [i for i, w in enumerate(tokens_norm) if w == alvo]
+            if not indices:
+                return []
+            for idx in indices:
+                inicio = max(idx - contexto, 0)
+                fim = min(idx + contexto + 1, len(tokens))
+                trechos_idx.append((inicio, fim, [alvo]))
+
+        # 2.b) Frase (múltiplas palavras)
+        else:
+            n = len(palavras_busca)
+            # percorre somente a sequência de PALAVRAS (tokens SEM pontuação)
+            for k in range(len(seq_palavras) - n + 1):
+                janela_palavras = [w for _, w in seq_palavras[k:k + n]]
+                if janela_palavras == palavras_busca:
+                    i_ini = seq_palavras[k][0]          # índice em tokens do 1º termo
+                    i_fim = seq_palavras[k + n - 1][0]  # índice em tokens do último termo
+                    inicio = max(i_ini - contexto, 0)
+                    fim = min(i_fim + contexto + 1, len(tokens))
+                    trechos_idx.append((inicio, fim, palavras_busca))
 
     # --- Unir trechos sobrepostos ---
-    trechos_idx.sort()
+    trechos_idx.sort(key=lambda x: x[0])
     trechos_unidos = []
     for inicio, fim, termos in trechos_idx:
         if not trechos_unidos or inicio > trechos_unidos[-1][1]:
-            trechos_unidos.append([inicio, fim, termos])
+            trechos_unidos.append([inicio, fim, termos[:]])
         else:
             trechos_unidos[-1][1] = max(trechos_unidos[-1][1], fim)
             trechos_unidos[-1][2].extend(termos)
 
     # --- Montar trechos finais com pontuação e destaque ---
     for inicio, fim, termos in trechos_unidos:
-        trecho = tokens[inicio:fim]
-        termos = set(termos)
-        trecho = [
-            f'<span class="highlight" style="background:#FFA;">{w}</span>'
-            if re.sub(r"\W+$", "", w.lower()) in termos else w
-            for w in trecho
-        ]
-        trechos_final.append(" ".join(trecho))
+        termos_set = set(termos)  # palavras normalizadas a destacar
+        trecho_tokens = []
+        for w_original, w_norm in zip(tokens[inicio:fim], tokens_norm[inicio:fim]):
+            if w_norm and w_norm in termos_set:
+                trecho_tokens.append(
+                    f'<span class="highlight" style="background:#FFA;">{w_original}</span>'
+                )
+            else:
+                trecho_tokens.append(w_original)
+        trechos_final.append(" ".join(trecho_tokens))
 
     return trechos_final
 
