@@ -298,7 +298,7 @@ def carregar_destinatarios(yaml_config):
         return [email.strip() for email in destinatarios_env.splitlines() if email.strip()]
 
 
-def analisar_pdfs():
+def buscar_termos_enviar_email():
     for consulta in glob.glob("consultas/*.yaml"):
         logger.info(f"📁 Processando arquivo: {consulta}")
         with open(consulta, "r", encoding="utf-8") as f:
@@ -329,4 +329,4 @@ def analisar_pdfs():
 # === Execução Principal ===
 if __name__ == "__main__":
     baixar_diarios_e_converter_para_txt()
-    analisar_pdfs()
+    buscar_termos_enviar_email()
