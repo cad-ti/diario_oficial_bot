@@ -2,7 +2,7 @@ from diario_oficial_bot.items import Gazette
 from diario_oficial_bot.spiders.base.doerj import BaseDoerjSpider
 
 class RJERJSpider(BaseDoerjSpider):
-    name = "rj_estado_legislativo"
+    name = "rj_estado_alerj"
     TERRITORY_ID = "3399992"
 
     def captura_caderno(self, response, nome_caderno, data_caderno):
