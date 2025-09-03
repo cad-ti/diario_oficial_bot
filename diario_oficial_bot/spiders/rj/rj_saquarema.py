@@ -8,7 +8,7 @@ class RjSaquaremaSpider(BaseGazetteSpider):
     name = "rj_saquarema"
     TERRITORY_ID = "3305505"
     allowed_domains = ["saquarema.rj.gov.br"]
-    start_urls = ["https://dos.saquarema.rj.gov.br/arquivo/"]
+    start_urls = ["https://dos.saquarema.rj.gov.br"]
     start_date = date(2018, 10, 9)
 
     def parse(self, response):
