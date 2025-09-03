@@ -18,15 +18,16 @@ jobs:
 
       - name: 📥 Baixar artefato ultima-edicao mais recente
         run: |
-          # Autentica o GitHub CLI usando o token padrão
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-
           # Pega o run_id mais recente do workflow "Envio dos Clippings"
-          RUN_ID=$(gh run list --workflow "Envio dos Clippings" --json databaseId --jq '.[0].databaseId')
+          RUN_ID=$(gh run list --workflow "Envio dos Clippings" --json databaseId --jq '.[0].databaseId' || echo "")
 
-          # Baixa apenas o artefato "ultima-edicao" dessa execução
-          gh run download $RUN_ID --name ultima-edicao --dir .
-
+          if [ -n "$RUN_ID" ]; then
+            echo "Baixando artefato da execução: $RUN_ID"
+            gh run download $RUN_ID --name ultima-edicao --dir .
+          else
+            echo "Nenhuma execução anterior encontrada. Encerrando workflow."
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
