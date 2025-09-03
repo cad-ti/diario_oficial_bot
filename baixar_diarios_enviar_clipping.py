@@ -1,6 +1,7 @@
 import ast
 import csv
 import glob
+import json
 import logging
 import os
 import pymupdf
@@ -31,6 +32,7 @@ PASTA_PDFS = f"{PASTA_ARQUIVOS}/pdfs"
 PASTA_TXTS = f"{PASTA_ARQUIVOS}/txts"
 PASTA_CONSULTAS = "consultas"
 METADADOS = f"{PASTA_ARQUIVOS}/db.csv"
+ULTIMA_EDICAO = "ultima_edicao.json"
 
 ontem = date.today() - timedelta(days=1)
 ontem_fmt_iso8601 = ontem.strftime("%Y-%m-%d")
@@ -78,14 +80,22 @@ def pdf_para_txt():
             pdf.close()
 
 
-def spiders_sem_arquivos(spiders_executados):
+def salvar_ultima_edicao_baixada(spiders):
+    if os.path.exists(ULTIMA_EDICAO):
+        with open(ULTIMA_EDICAO, "r", encoding="utf-8") as f:
+            ultima_edicao = json.load(f)
+    else:
+        ultima_edicao = {spider: '2000-01-01' for spider in spiders}
+
     with open(METADADOS, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        nomes_csv = [row["name"] for row in reader]
+        for row in reader:
+            ultima_edicao[row["name"]] = row["date"]
 
-    nao_encontrados = [spider for spider in spiders_executados if spider not in nomes_csv]
-    if nao_encontrados:
-        logger.warning(f"⚠️ Spiders sem arquivos baixados:\n\t" + "\n\t".join(nao_encontrados))
+    with open(ULTIMA_EDICAO, "w", encoding="utf-8") as f:
+        json.dump(ultima_edicao, f, indent=4, ensure_ascii=False)
+
+    logger.info("✅ Artefato ultima_edicao.json gravado")
 
 
 def baixar_diarios_e_converter_para_txt():
@@ -100,7 +110,7 @@ def baixar_diarios_e_converter_para_txt():
             subprocess.run(["scrapy", "crawl", spider, "-a", f"start_date={ontem_fmt_iso8601}", "-a", f"end_date={ontem_fmt_iso8601}", "-o", METADADOS, "-s", f"LOG_FILE={PASTA_ARQUIVOS}/log.txt"])
 
     pdf_para_txt()
-    spiders_sem_arquivos(spiders_executados)
+    salvar_ultima_edicao_baixada(spiders_executados)
 
 
 def _normalizar_token(w: str) -> str:

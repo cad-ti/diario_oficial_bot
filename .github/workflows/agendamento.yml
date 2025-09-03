@@ -31,7 +31,7 @@ jobs:
           pip install scrapy python-dateutil dateparser text-unidecode thefuzz filetype pymupdf pyyaml
 
       - name: 🚀 Executar script
-        run: python salvar_ultima_edicao_baixada.py
+        run: python baixar_diarios_enviar_clipping.py
         env:
           EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
           EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
