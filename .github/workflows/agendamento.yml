@@ -13,6 +13,13 @@ jobs:
       - name: 🔄 Clonar o repositório
         uses: actions/checkout@v3
 
+      - name: 📥 Baixar artefato ultima-edicao (se existir)
+        uses: actions/download-artifact@v4
+        with:
+          name: ultima-edicao
+          path: .
+        continue-on-error: true  # não falha se não existir ainda
+
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v4
         with:
@@ -24,7 +31,7 @@ jobs:
           pip install scrapy python-dateutil dateparser text-unidecode thefuzz filetype pymupdf pyyaml
 
       - name: 🚀 Executar script
-        run: python gerar_enviar_clipping.py
+        run: python salvar_ultima_edicao_baixada.py
         env:
           EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
           EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
@@ -32,3 +39,9 @@ jobs:
           DESTINATARIOS_CAD_EDUCACAO: ${{ vars.DESTINATARIOS_CAD_EDUCACAO }}
           DESTINATARIOS_CAD_SEGURANCA: ${{ vars.DESTINATARIOS_CAD_SEGURANCA }}
           DESTINATARIOS_CAD_TI: ${{ vars.DESTINATARIOS_CAD_TI }}
+
+      - name: 📤 Enviar artefato ultima-edicao atualizado
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultima-edicao
+          path: ultima_edicao.json
