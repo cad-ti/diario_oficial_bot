@@ -1,4 +1,4 @@
-name: Verificação spiders sem downloads na última semana
+name: Alertar sobre spiders sem downloads na última semana
 
 on:
   schedule:
@@ -42,7 +42,7 @@ jobs:
           pip install python-dateutil
 
       - name: 📧 Verificar e enviar alerta
-        run: python verificar_atualizacoes.py
+        run: python alertar_falhas_spiders.py
         env:
           EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
           EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
