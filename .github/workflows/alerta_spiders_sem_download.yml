@@ -1,0 +1,37 @@
+name: Verificação spiders sem downloadas na ultima semana
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'  # Segunda às 10h (Brasília = UTC-3)
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔄 Clonar o repositório
+        uses: actions/checkout@v3
+
+      - name: 📥 Baixar artefato ultima-edicao
+        uses: actions/download-artifact@v4
+        with:
+          name: ultima-edicao
+          path: .
+        continue-on-error: false
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: 📦 Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-dateutil
+
+      - name: 📧 Verificar e enviar alerta
+        run: python verificar_atualizacoes.py
+        env:
+          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+          EMAIL_SENHA: ${{ secrets.EMAIL_SENHA }}
+          DESTINATARIOS_ALERTA: ${{ vars.DESTINATARIOS_ALERTA }}
