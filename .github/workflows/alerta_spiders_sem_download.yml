@@ -1,4 +1,4 @@
-name: Verificação spiders sem downloadas na ultima semana
+name: Verificação spiders sem downloads na última semana
 
 on:
   schedule:
@@ -8,16 +8,27 @@ on:
 jobs:
   verificar:
     runs-on: ubuntu-latest
+
     steps:
       - name: 🔄 Clonar o repositório
         uses: actions/checkout@v3
 
-      - name: 📥 Baixar artefato ultima-edicao
-        uses: actions/download-artifact@v4
-        with:
-          name: ultima-edicao
-          path: .
-        continue-on-error: false
+      - name: 📥 Instalar GitHub CLI
+        run: sudo apt-get update && sudo apt-get install -y gh
+
+      - name: 📥 Baixar artefato ultima-edicao mais recente
+        run: |
+          # Autentica o GitHub CLI usando o token padrão
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+          # Pega o run_id mais recente do workflow "Envio dos Clippings"
+          RUN_ID=$(gh run list --workflow "Envio dos Clippings" --json databaseId --jq '.[0].databaseId')
+
+          # Baixa apenas o artefato "ultima-edicao" dessa execução
+          gh run download $RUN_ID --name ultima-edicao --dir .
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v4
