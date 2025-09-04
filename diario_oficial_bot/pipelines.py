@@ -30,15 +30,22 @@ class DiarioOficialFilesPipeline(FilesPipeline):
 
     DEFAULT_FILES_REQUESTS_FIELD = "file_requests"
 
-    def __init__(self, *args, settings=None, **kwargs):
-        super().__init__(*args, settings=settings, **kwargs)
+    def __init__(self, store_uri, crawler, *args, **kwargs):
+        # repassa crawler para o FilesPipeline
+        super().__init__(store_uri, crawler=crawler, *args, **kwargs)
 
+        settings = crawler.settings
         if isinstance(settings, dict) or settings is None:
             settings = Settings(settings)
 
         self.files_requests_field = settings.get(
             "FILES_REQUESTS_FIELD", self.DEFAULT_FILES_REQUESTS_FIELD
         )
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        store_uri = crawler.settings.get("FILES_STORE")
+        return cls(store_uri, crawler)
 
     def get_media_requests(self, item, info):
         """Makes requests from urls and/or lets through ready requests."""
