@@ -1,6 +1,7 @@
 # Diário Oficial Bot - TCE-RJ
 
 Este projeto automatiza a geração e envio de um clipping de publicações extraídas de diários oficiais do Estado do Rio de Janeiro.
+A parte de raspagem de dados é um fork do projeto [Querido Diário](https://queridodiario.ok.org.br/).
 
 ## 📚 Sumário
 
