@@ -54,3 +54,9 @@ jobs:
         with:
           name: ultima-edicao
           path: ultima_edicao.json
+
+      - name: 📤 Salvar log scrapy crawl
+        uses: actions/upload-artifact@v4
+        with:
+          name: log
+          path: data/log.txt
