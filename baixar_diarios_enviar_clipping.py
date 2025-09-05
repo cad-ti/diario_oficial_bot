@@ -72,11 +72,13 @@ def pdf_para_txt():
 
 
 def salvar_ultima_edicao_baixada(spiders):
+    ultima_edicao = {}
     if os.path.exists(ULTIMA_EDICAO):
         with open(ULTIMA_EDICAO, "r", encoding="utf-8") as f:
             ultima_edicao = json.load(f)
-    else:
-        ultima_edicao = {spider: '2000-01-01' for spider in spiders}
+    
+    # adiciona novos spiders a lista
+    for spider in spiders: ultima_edicao.setdefault(spider, "2000-01-01")
 
     with open(METADADOS, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
@@ -85,8 +87,6 @@ def salvar_ultima_edicao_baixada(spiders):
 
     with open(ULTIMA_EDICAO, "w", encoding="utf-8") as f:
         json.dump(ultima_edicao, f, indent=4, ensure_ascii=False)
-
-    logger.info("✅ Artefato ultima_edicao.json gravado")
 
 
 def baixar_diarios_e_converter_para_txt():
@@ -101,7 +101,7 @@ def baixar_diarios_e_converter_para_txt():
             subprocess.run(["scrapy", "crawl", spider, "-a", f"start_date={ontem_fmt_iso8601}", "-a", f"end_date={ontem_fmt_iso8601}", "-o", METADADOS, "-s", f"LOG_FILE={PASTA_ARQUIVOS}/log.txt"])
 
     pdf_para_txt()
-    salvar_ultima_edicao_baixada(spiders_executados)
+    salvar_ultima_edicao_baixada(spiders)
 
 
 def gerar_html_resultado(termo, resultados):
