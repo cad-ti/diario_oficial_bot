@@ -18,8 +18,8 @@ jobs:
 
       - name: 📥 Baixar artefato ultima-edicao mais recente
         run: |
-          # Pega o run_id mais recente do workflow "Envio dos Clippings"
-          RUN_ID=$(gh run list --workflow "Envio dos Clippings" --json databaseId --jq '.[0].databaseId' || echo "")
+          # Pega o segundo run_id mais recente do workflow "Envio dos Clippings". O mais recente é a instancia em execução.
+          RUN_ID=$(gh run list --workflow "Envio dos Clippings" --json databaseId --jq '.[1].databaseId' || echo "")
 
           if [ -n "$RUN_ID" ]; then
             echo "Baixando artefato da execução: $RUN_ID"
@@ -58,5 +58,5 @@ jobs:
       - name: 📤 Salvar log scrapy crawl
         uses: actions/upload-artifact@v4
         with:
-          name: log
+          name: log scrapy crawl 
           path: data/log.txt
