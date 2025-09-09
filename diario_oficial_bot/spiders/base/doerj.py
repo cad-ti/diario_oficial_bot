@@ -1,10 +1,11 @@
 from datetime import date
 import datetime as dt
-import scrapy
+from scrapy import Request
 import re
 import base64
 
 from scrapy.selector import Selector
+from diario_oficial_bot.items import Gazette
 from diario_oficial_bot.spiders.base import BaseGazetteSpider
 
 
@@ -13,15 +14,14 @@ def b64e(s):
 
 class BaseDoerjSpider(BaseGazetteSpider):
     allowed_domains = ["ioerj.com.br"]
-    start_urls = ["https://www.ioerj.com.br/"]
     start_date = date(2019, 1, 2)
 
-    def parse(self, response):
+    def start_requests(self):
         parsing_date = self.end_date
 
         while parsing_date >= self.start_date:
             start_url = "https://www.ioerj.com.br/portal/modules/conteudoonline/do_seleciona_edicao.php?data={}"
-            yield scrapy.Request(
+            yield Request(
                 start_url.format(b64e(parsing_date.strftime('%Y%m%d'))),
                 callback=self.captura_doerj,
                 cb_kwargs={"parsing_date": parsing_date},
@@ -29,22 +29,32 @@ class BaseDoerjSpider(BaseGazetteSpider):
             parsing_date = parsing_date - dt.timedelta(days=1)
 
     def captura_doerj(self, response, parsing_date):
-        if response.status == 200:
-            # Substitui BeautifulSoup por XPath
-            cadernos = response.xpath('//a[@id="cor-texto"]')
-            for caderno in cadernos:
-                nome_caderno = caderno.xpath('normalize-space(text())').get()
-                href = caderno.xpath('@href').get()
+        cadernos = response.xpath('//a[@id="cor-texto"]')
+        for caderno in cadernos:
+            nome_caderno = caderno.xpath('normalize-space(text())').get()
+            href = caderno.xpath('@href').get()
 
-                if href:
-                    id_caderno = href.split('session=')[1]
-                    url_caderno = f'https://www.ioerj.com.br/portal/modules/conteudoonline/mostra_edicao.php?session={id_caderno}'
-                    yield scrapy.Request(
-                        url_caderno,
-                        method="GET",
-                        callback=self.captura_caderno,
-                        cb_kwargs={"nome_caderno": nome_caderno, "data_caderno": parsing_date},
-                    )
+            if href and self.poder in nome_caderno:
+                id_caderno = href.split('session=')[1]
+                url_caderno = f'https://www.ioerj.com.br/portal/modules/conteudoonline/mostra_edicao.php?session={id_caderno}'
+                yield Request(
+                    url_caderno,
+                    method="GET",
+                    callback=self.captura_caderno,
+                    cb_kwargs={"data_caderno": parsing_date},
+                )
+
+    def captura_caderno(self, response, data_caderno):
+        pdf_id = self.parse_pdf_id(response.text)
+
+        if pdf_id:
+            download_url = f'https://www.ioerj.com.br/portal/modules/conteudoonline/mostra_edicao.php?k={pdf_id}'
+            yield Gazette(
+                date=data_caderno,
+                file_urls=[download_url],
+                is_extra_edition=False,
+                power=self.power,
+            )
 
     def parse_pdf_id(self, html_string):
         sel = Selector(text=html_string)
