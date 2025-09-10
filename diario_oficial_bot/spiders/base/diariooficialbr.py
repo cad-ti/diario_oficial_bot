@@ -30,7 +30,7 @@ class BaseDiarioOficialBRSpider(BaseGazetteSpider):
             edition_number_raw = edition.xpath(
                 './/span[contains(text(), "Edição")]/text()'
             )
-            edition_number = edition_number_raw.re_first("nº\s+(\d+)")
+            edition_number = edition_number_raw.re_first(r"nº\s+(\d+)")
             is_extra_edition = "extra" in edition_number_raw.get().lower()
             edition_url = edition.xpath(
                 './/a[contains(@href, "/download")]/@href'
