@@ -11,3 +11,5 @@ class Gazette(scrapy.Item):
     file_urls = scrapy.Field()
     files = scrapy.Field()
     scraped_at = scrapy.Field()
+    _file_content = scrapy.Field()
+    _file_content_url = scrapy.Field()
