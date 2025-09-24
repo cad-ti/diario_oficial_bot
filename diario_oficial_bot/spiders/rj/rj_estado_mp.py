@@ -18,23 +18,28 @@ class RjEstadoMpSpider(BaseGazetteSpider):
             edition_date_text = edition.css('h3::text').get()
             edition_date_text = edition_date_text.replace(".", "/").strip()
             match_date = re.search(r'\d{2}/\d{2}/\d{4}', edition_date_text)
+            
             try:
                 edition_date = datetime.strptime(match_date.group(), "%d/%m/%Y").date()
             except:
                 continue
+            
             if edition_date > self.end_date:
                 continue
             if edition_date < self.start_date:
                 return
+            
             edition_url = edition.css('::attr(href)').get()
             edition_url = "https://" + self.allowed_domains[0] + edition_url
             edition_number_text = edition.css('div.span-res-busca::text').get()
+            
             try:
                 edition_number = re.search(r'Edição nº ([\d.]+)', edition_number_text)
             except:
                 continue
             if edition_number:
                 edition_number = edition_number.group(1).replace('.', '')
+                
             yield Gazette(
                 date=edition_date,
                 edition_number=edition_number,
@@ -42,6 +47,7 @@ class RjEstadoMpSpider(BaseGazetteSpider):
                 file_urls=[edition_url],
                 power="executive",
             )
+            
         current_url = response.url
         match = re.search(r'_br_mp_mprj_internet_busca_web_BuscaPortlet_cur=(\d+)', current_url)
         if match:
