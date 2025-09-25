@@ -30,15 +30,14 @@ class RjEstadoMpSpider(BaseGazetteSpider):
                 return
             
             edition_url = edition.css('::attr(href)').get()
-            edition_url = "https://" + self.allowed_domains[0] + edition_url
-            edition_number_text = edition.css('div.span-res-busca::text').get()
+            edition_url = response.urljoin(edition_url)
             
-            try:
-                edition_number = re.search(r'Edição nº ([\d.]+)', edition_number_text)
-            except:
-                continue
-            if edition_number:
-                edition_number = edition_number.group(1).replace('.', '')
+            edition_number = ""
+            edition_number_text = edition.css('div.span-res-busca::text').get()
+            if edition_number_text:
+                match_edition_number = re.search(r'Edição nº ([\d.]+)', edition_number_text.replace('.', ''))
+                if match_edition_number:
+                    edition_number = match_edition_number.group(1)
                 
             yield Gazette(
                 date=edition_date,
