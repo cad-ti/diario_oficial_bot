@@ -10,11 +10,27 @@ import smtplib
 import shutil
 import subprocess
 import yaml
+import io
+import time
+import pandas as pd
+import fitz
+import pytesseract
+import cv2
+import numpy as np
 
+
+from pathlib import Path
+from PIL import Image
+from concurrent.futures import ProcessPoolExecutor
 from datetime import date, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pesquisa_textual import localizar_termo
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\Users\joaopolr\github\pdf-ocr\tesseract\tesseract.exe"
+os.environ["TESSDATA_PREFIX"] = r"C:\Users\joaopolr\github\pdf-ocr\tesseract\tessdata"
+TESSERACT_LANG = "por"  # idioma
+TESSERACT_CONFIG = "--oem 1 --psm 3" 
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,8 +71,15 @@ def normalizar_texto(texto: str):
     return texto
 
 def pdf_para_txt():
+    df = pd.read_csv(METADADOS)
     for arquivo in os.listdir(PASTA_PDFS):
         if arquivo.endswith(".pdf"):
+            linha = df[df["files"].str.contains(arquivo[:-4], na=False)] 
+            tem_imagem = linha["image_pdf"].iloc[0]
+            print(f"tem imagem: {tem_imagem}")
+            if tem_imagem == True:
+                pdf_para_txt_mais_robusto(arquivo)
+                continue
             arquivo_txt = arquivo[:-4] + ".txt"
             caminho_txt = os.path.join(PASTA_TXTS, arquivo_txt)
 
@@ -65,10 +88,79 @@ def pdf_para_txt():
     
             with open(caminho_txt, "w", encoding="utf-8") as arquivo_txt:
                 for pagina in pdf:
-                    texto = pagina.get_text("text")  # Extrai só texto puro
+                    texto = pagina.get_text("text")  
                     texto = normalizar_texto(texto)
                     arquivo_txt.write(texto + "\n")
             pdf.close()
+
+MAX_TAMANHO_MB = 60         
+MAX_TEMPO_PDF = 30          
+
+def ocr_image_bytes(args):
+    pagina_num, imagem_bytes = args
+    image = Image.open(io.BytesIO(imagem_bytes)).convert("RGB")
+    img = np.array(image)[:, :, ::-1]  
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.medianBlur(gray, 3)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    gray = clahe.apply(gray)
+    th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                               cv2.THRESH_BINARY, 15, 10)
+
+    pil = Image.fromarray(th)
+    texto = pytesseract.image_to_string(pil, lang=TESSERACT_LANG, config=TESSERACT_CONFIG)
+    return pagina_num, texto
+
+
+def pdf_para_txt_mais_robusto(pdf_name):
+    os.makedirs(PASTA_TXTS, exist_ok=True)
+    for arquivo in os.listdir(PASTA_PDFS):
+        if arquivo == pdf_name:
+            caminho_pdf = os.path.join(PASTA_PDFS, arquivo)
+            tamanho_mb = os.path.getsize(caminho_pdf) / (1024 * 1024)
+
+            if tamanho_mb > MAX_TAMANHO_MB:
+                print(f"⏩ Ignorado: {arquivo} ({tamanho_mb:.2f} MB — muito grande, levaria >30s)")
+                continue
+
+            arquivo_txt = Path(arquivo).with_suffix(".txt").name
+            caminho_txt = os.path.join(PASTA_TXTS, arquivo_txt)
+
+            print(f"\n📄 Processando {arquivo} ({tamanho_mb:.2f} MB)...")
+            inicio = time.time()
+
+            try:
+                doc = fitz.open(caminho_pdf)
+                imagens_para_ocr = []
+                resultados = []
+
+                for i, pagina in enumerate(doc):
+                    zoom = 3
+                    mat = fitz.Matrix(zoom, zoom)
+                    pix = pagina.get_pixmap(matrix=mat, alpha=False)
+                    img_bytes = pix.tobytes("png")
+                    imagens_para_ocr.append((i, img_bytes))
+                doc.close()
+
+                with ProcessPoolExecutor() as executor:
+                    futuros = executor.map(ocr_image_bytes, imagens_para_ocr, timeout=MAX_TEMPO_PDF)
+                    for pagina_num, texto in futuros:
+                        resultados.append((pagina_num, texto))
+
+                resultados.sort(key=lambda x: x[0])
+                with open(caminho_txt, "w", encoding="utf-8") as f:
+                    for pagina_num, texto in resultados:
+                        f.write(f"\n--- Página {pagina_num + 1} ---\n{texto.strip()}\n")
+
+                duracao = time.time() - inicio
+                print(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
+
+            except TimeoutError:
+                print(f"⚠️ Tempo excedido ({MAX_TEMPO_PDF}s). Ignorando {arquivo}.")
+            except Exception as e:
+                print(f"❌ Erro ao processar {arquivo}: {e}")
+            
 
 
 def salvar_ultima_edicao_baixada(spiders):
@@ -77,7 +169,6 @@ def salvar_ultima_edicao_baixada(spiders):
         with open(ULTIMA_EDICAO, "r", encoding="utf-8") as f:
             ultima_edicao = json.load(f)
     
-    # adiciona novos spiders a lista
     for spider in spiders: ultima_edicao.setdefault(spider, "2000-01-01")
 
     with open(METADADOS, newline='', encoding='utf-8') as f:
