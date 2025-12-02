@@ -12,7 +12,6 @@ import subprocess
 import yaml
 import io
 import time
-import pandas as pd
 import fitz
 import pytesseract
 import cv2
@@ -27,8 +26,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pesquisa_textual import localizar_termo
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Users\joaopolr\github\pdf-ocr\tesseract\tesseract.exe"
-os.environ["TESSDATA_PREFIX"] = r"C:\Users\joaopolr\github\pdf-ocr\tesseract\tessdata"
+
+pytesseract.pytesseract.tesseract_cmd = os.environ.get("TESSERACT_CMD")
+os.environ["TESSDATA_PREFIX"] = os.environ.get("TESSDATA_PREFIX", "")
 TESSERACT_LANG = "por"  # idioma
 TESSERACT_CONFIG = "--oem 1 --psm 3" 
 
@@ -71,14 +71,19 @@ def normalizar_texto(texto: str):
     return texto
 
 def pdf_para_txt():
-    df = pd.read_csv(METADADOS)
+    with open(METADADOS, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        linhas = list(reader)
     for arquivo in os.listdir(PASTA_PDFS):
         if arquivo.endswith(".pdf"):
-            linha = df[df["files"].str.contains(arquivo[:-4], na=False)] 
-            tem_imagem = linha["image_pdf"].iloc[0]
-            print(f"tem imagem: {tem_imagem}")
+            arquivo_base = arquivo[:-4]
+            for linha in linhas:
+                if arquivo_base in linha["files"]:
+                    tem_imagem = linha["image_pdf"]
+                    print(arquivo, tem_imagem)
+                    break
             if tem_imagem == True:
-                pdf_para_txt_mais_robusto(arquivo)
+                pdf_com_imagem_para_txt(arquivo)
                 continue
             arquivo_txt = arquivo[:-4] + ".txt"
             caminho_txt = os.path.join(PASTA_TXTS, arquivo_txt)
@@ -113,7 +118,7 @@ def ocr_image_bytes(args):
     return pagina_num, texto
 
 
-def pdf_para_txt_mais_robusto(pdf_name):
+def pdf_com_imagem_para_txt(pdf_name):
     os.makedirs(PASTA_TXTS, exist_ok=True)
     for arquivo in os.listdir(PASTA_PDFS):
         if arquivo == pdf_name:
