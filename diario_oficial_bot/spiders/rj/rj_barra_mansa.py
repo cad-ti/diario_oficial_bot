@@ -18,7 +18,7 @@ class RjBarraMansaSpider(BaseGazetteSpider):
     start_urls = ["https://portaltransparencia.barramansa.rj.gov.br/boletim-oficial/"]
     start_date = date(2017, 1, 3)
     ajax_url = "https://portaltransparencia.barramansa.rj.gov.br/wp-admin/admin-ajax.php"
-    page_size = 1000
+    page_size = 20
     draw = 1
 
     def start_requests(self):
@@ -77,7 +77,7 @@ class RjBarraMansaSpider(BaseGazetteSpider):
                 edition_number=gazette_edition,
             )
 
-        if not data[data]:
+        if not data["data"]:
             return
         start = response.meta["start"] + self.page_size
         self.draw += 1
