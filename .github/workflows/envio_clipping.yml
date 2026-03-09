@@ -26,9 +26,9 @@ jobs:
           echo "Baixando artefato da execução: $RUN_ID"
           gh run download $RUN_ID --name ultima-edicao --dir .
           fi
-          env:
+        env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            continue-on-error: true  # não falha se não existir ainda
+        continue-on-error: true  # não falha se não existir ainda
           
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v4
