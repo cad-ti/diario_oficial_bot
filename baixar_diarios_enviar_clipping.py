@@ -188,6 +188,7 @@ def baixar_diarios_e_converter_para_txt():
 
     spiders = subprocess.check_output(["scrapy", "list"], text=True).splitlines()
     spiders_executados = []
+        
     for spider in spiders:
         if spider.startswith("rj_"):
             spiders_executados.append(spider)
@@ -299,9 +300,8 @@ def buscar_termos_enviar_email():
         corpo_html = gerar_corpo_email(titulo, termos)
         if not corpo_html:
             logger.warning(f"⚠️ Nenhum resultado encontrado para a consulta {consulta}.")
-            continue
+            #continue
         
-        print("Destinatarios carregados:", destinatarios)
 
         enviar_email(
             destinatarios=destinatarios,
