@@ -27,8 +27,6 @@ from email.mime.text import MIMEText
 from pesquisa_textual import localizar_termo
 
 
-pytesseract.pytesseract.tesseract_cmd = os.environ.get("TESSERACT_CMD")
-os.environ["TESSDATA_PREFIX"] = os.environ.get("TESSDATA_PREFIX", "")
 TESSERACT_LANG = "por"  # idioma
 TESSERACT_CONFIG = "--oem 1 --psm 3" 
 
@@ -302,6 +300,8 @@ def buscar_termos_enviar_email():
         if not corpo_html:
             logger.warning(f"⚠️ Nenhum resultado encontrado para a consulta {consulta}.")
             continue
+        
+        print("Destinatarios carregados:", destinatarios)
 
         enviar_email(
             destinatarios=destinatarios,
