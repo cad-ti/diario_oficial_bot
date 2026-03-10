@@ -74,12 +74,11 @@ def pdf_para_txt():
         linhas = list(reader)
     for arquivo in os.listdir(PASTA_PDFS):
         if arquivo.endswith(".pdf"):
-            logger.info(tem_imagem)
             arquivo_base = arquivo[:-4]
             for linha in linhas:
                 if arquivo_base in linha["files"]:
                     tem_imagem = linha["image_pdf"]
-                    print(arquivo, tem_imagem)
+                    logger.info(arquivo, tem_imagem)
                     break
             if tem_imagem == True:
                 pdf_com_imagem_para_txt(arquivo)
