@@ -80,7 +80,7 @@ def pdf_para_txt():
                     tem_imagem = linha["image_pdf"]
                     logger.info(arquivo + " + " + tem_imagem)
                     break
-            if tem_imagem == True:
+            if tem_imagem == "True":
                 pdf_com_imagem_para_txt(arquivo)
                 continue
             arquivo_txt = arquivo[:-4] + ".txt"
