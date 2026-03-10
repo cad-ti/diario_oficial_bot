@@ -78,7 +78,7 @@ def pdf_para_txt():
             for linha in linhas:
                 if arquivo_base in linha["files"]:
                     tem_imagem = linha["image_pdf"]
-                    logger.info(arquivo, tem_imagem)
+                    logger.info(arquivo + " + " + tem_imagem)
                     break
             if tem_imagem == True:
                 pdf_com_imagem_para_txt(arquivo)
