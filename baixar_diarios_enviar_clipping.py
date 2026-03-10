@@ -124,13 +124,13 @@ def pdf_com_imagem_para_txt(pdf_name):
             tamanho_mb = os.path.getsize(caminho_pdf) / (1024 * 1024)
 
             if tamanho_mb > MAX_TAMANHO_MB:
-                print(f"⏩ Ignorado: {arquivo} ({tamanho_mb:.2f} MB — muito grande, levaria >30s)")
+                logger.info(f"⏩ Ignorado: {arquivo} ({tamanho_mb:.2f} MB — muito grande, levaria >30s)")
                 continue
 
             arquivo_txt = Path(arquivo).with_suffix(".txt").name
             caminho_txt = os.path.join(PASTA_TXTS, arquivo_txt)
 
-            print(f"\n📄 Processando {arquivo} ({tamanho_mb:.2f} MB)...")
+            logger.info(f"\n📄 Processando {arquivo} ({tamanho_mb:.2f} MB)...")
             inicio = time.time()
 
             try:
@@ -158,12 +158,12 @@ def pdf_com_imagem_para_txt(pdf_name):
                         f.write(f"\n--- Página {pagina_num + 1} ---\n{texto.strip()}\n")
 
                 duracao = time.time() - inicio
-                print(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
+                logger.info(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
 
             except TimeoutError:
-                print(f"⚠️ Tempo excedido ({MAX_TEMPO_PDF}s). Ignorando {arquivo}.")
+                logger.info(f"⚠️ Tempo excedido ({MAX_TEMPO_PDF}s). Ignorando {arquivo}.")
             except Exception as e:
-                print(f"❌ Erro ao processar {arquivo}: {e}")
+                logger.info(f"❌ Erro ao processar {arquivo}: {e}")
             
 
 
