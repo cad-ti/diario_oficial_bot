@@ -154,6 +154,7 @@ def pdf_com_imagem_para_txt(pdf_name):
                 resultados.sort(key=lambda x: x[0])
                 with open(caminho_txt, "w", encoding="utf-8") as f:
                     for pagina_num, texto in resultados:
+                        logger.info(texto.strip() + "\n")
                         f.write(f"\n--- Página {pagina_num + 1} ---\n{texto.strip()}\n")
 
                 duracao = time.time() - inicio
@@ -300,7 +301,7 @@ def buscar_termos_enviar_email():
         corpo_html = gerar_corpo_email(titulo, termos)
         if not corpo_html:
             logger.warning(f"⚠️ Nenhum resultado encontrado para a consulta {consulta}.")
-            #continue
+            continue
         
 
         enviar_email(
