@@ -97,7 +97,7 @@ def pdf_para_txt():
             pdf.close()
 
 MAX_TAMANHO_MB = 60         
-MAX_TEMPO_PDF = 30          
+MAX_TEMPO_PDF = 10000          
 
 def ocr_image_bytes(args):
     pagina_num, imagem_bytes = args
