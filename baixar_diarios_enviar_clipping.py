@@ -48,7 +48,7 @@ PASTA_CONSULTAS = "consultas"
 METADADOS = f"{PASTA_ARQUIVOS}/db.csv"
 ULTIMA_EDICAO = "ultima_edicao.json"
 
-ontem = date.today() - timedelta(days=1)
+ontem = date(2026,2,25)#date.today() - timedelta(days=1)
 ontem_fmt_iso8601 = ontem.strftime("%Y-%m-%d")
 ontem_fmt_br = ontem.strftime("%d/%m/%Y")
 
