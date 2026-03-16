@@ -29,8 +29,6 @@ from pesquisa_textual import localizar_termo
 
 ocr = PaddleOCR(
     lang="pt",
-    use_angle_cls=True,
-    use_gpu=False,
     show_log=False
 )
 
