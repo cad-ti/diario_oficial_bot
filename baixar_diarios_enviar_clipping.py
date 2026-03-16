@@ -28,8 +28,7 @@ from email.mime.text import MIMEText
 from pesquisa_textual import localizar_termo
 
 ocr = PaddleOCR(
-    lang="pt",
-    show_log=False
+    lang="pt"
 )
 
 
