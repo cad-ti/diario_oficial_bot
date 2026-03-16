@@ -17,8 +17,7 @@ import pytesseract
 import cv2
 import numpy as np
 
-from paddleocr import PaddleOCR
-from concurrent.futures import ThreadPoolExecutor
+
 from pathlib import Path
 from PIL import Image
 from concurrent.futures import ProcessPoolExecutor
@@ -26,10 +25,6 @@ from datetime import date, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pesquisa_textual import localizar_termo
-
-ocr = PaddleOCR(
-    lang="pt"
-)
 
 
 TESSERACT_LANG = "por"  # idioma
@@ -106,83 +101,69 @@ MAX_TEMPO_PDF = 300
 
 def ocr_image_bytes(args):
     pagina_num, imagem_bytes = args
+    image = Image.open(io.BytesIO(imagem_bytes)).convert("RGB")
+    img = np.array(image)[:, :, ::-1]  
 
-    img = cv2.imdecode(np.frombuffer(imagem_bytes, np.uint8), cv2.IMREAD_COLOR)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.medianBlur(gray, 3)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    gray = clahe.apply(gray)
+    th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                               cv2.THRESH_BINARY, 15, 10)
 
-    resultado = ocr.ocr(img)
-
-    textos = []
-
-    if resultado:
-        for linha in resultado:
-            for palavra in linha:
-                textos.append(palavra[1][0])
-
-    texto_final = " ".join(textos)
-
-    return pagina_num, texto_final
+    pil = Image.fromarray(th)
+    texto = pytesseract.image_to_string(pil, lang=TESSERACT_LANG, config=TESSERACT_CONFIG)
+    return pagina_num, texto
 
 
 def pdf_com_imagem_para_txt(pdf_name):
     os.makedirs(PASTA_TXTS, exist_ok=True)
+    for arquivo in os.listdir(PASTA_PDFS):
+        if arquivo == pdf_name:
+            caminho_pdf = os.path.join(PASTA_PDFS, arquivo)
+            tamanho_mb = os.path.getsize(caminho_pdf) / (1024 * 1024)
 
-    caminho_pdf = os.path.join(PASTA_PDFS, pdf_name)
-    tamanho_mb = os.path.getsize(caminho_pdf) / (1024 * 1024)
-
-    if tamanho_mb > MAX_TAMANHO_MB:
-        logger.info(f"⏩ Ignorado: {pdf_name} ({tamanho_mb:.2f} MB)")
-        return
-
-    arquivo_txt = Path(pdf_name).with_suffix(".txt").name
-    caminho_txt = os.path.join(PASTA_TXTS, arquivo_txt)
-
-    logger.info(f"📄 Processando {pdf_name} ({tamanho_mb:.2f} MB)...")
-
-    inicio = time.time()
-
-    try:
-        doc = fitz.open(caminho_pdf)
-
-        imagens_para_ocr = []
-        resultados = []
-
-        for i, pagina in enumerate(doc):
-
-            # 🔎 primeiro tenta extrair texto direto
-            texto = pagina.get_text()
-
-            if texto.strip():
-                resultados.append((i, texto))
+            if tamanho_mb > MAX_TAMANHO_MB:
+                logger.info(f"⏩ Ignorado: {arquivo} ({tamanho_mb:.2f} MB — muito grande, levaria >30s)")
                 continue
 
-            # 📷 se não tiver texto, gera imagem
-            zoom = 2
-            mat = fitz.Matrix(zoom, zoom)
-            pix = pagina.get_pixmap(matrix=mat)
+            arquivo_txt = Path(arquivo).with_suffix(".txt").name
+            caminho_txt = os.path.join(PASTA_TXTS, arquivo_txt)
 
-            img_bytes = pix.tobytes("png")
+            logger.info(f"\n📄 Processando {arquivo} ({tamanho_mb:.2f} MB)...")
+            inicio = time.time()
 
-            imagens_para_ocr.append((i, img_bytes))
+            try:
+                doc = fitz.open(caminho_pdf)
+                imagens_para_ocr = []
+                resultados = []
 
-        doc.close()
+                for i, pagina in enumerate(doc):
+                    zoom = 2
+                    mat = fitz.Matrix(zoom, zoom)
+                    pix = pagina.get_pixmap(matrix=mat, alpha=False)
+                    img_bytes = pix.tobytes("png")
+                    imagens_para_ocr.append((i, img_bytes))
+                doc.close()
 
-        # 🚀 OCR paralelo
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            for pagina_num, texto in executor.map(ocr_image_bytes, imagens_para_ocr):
-                resultados.append((pagina_num, texto))
+                with ProcessPoolExecutor(max_workers=os.cpu_count() // 2) as executor:
+                    futuros = executor.map(ocr_image_bytes, imagens_para_ocr, timeout=MAX_TEMPO_PDF)
+                    for pagina_num, texto in futuros:
+                        resultados.append((pagina_num, texto))
 
-        resultados.sort(key=lambda x: x[0])
+                resultados.sort(key=lambda x: x[0])
+                with open(caminho_txt, "w", encoding="utf-8") as f:
+                    for pagina_num, texto in resultados:
+                        logger.info(texto.strip() + "\n")
+                        f.write(f"\n--- Página {pagina_num + 1} ---\n{texto.strip()}\n")
 
-        with open(caminho_txt, "w", encoding="utf-8") as f:
-            for pagina_num, texto in resultados:
-                f.write(f"\n--- Página {pagina_num + 1} ---\n{texto.strip()}\n")
-                logger.info(texto.strip())
+                duracao = time.time() - inicio
+                logger.info(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
 
-        duracao = time.time() - inicio
-        logger.info(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
-
-    except Exception as e:
-        logger.error(f"❌ Erro ao processar {pdf_name}: {e}")
+            except TimeoutError:
+                logger.info(f"⚠️ Tempo excedido ({MAX_TEMPO_PDF}s). Ignorando {arquivo}.")
+            except Exception as e:
+                logger.info(f"❌ Erro ao processar {arquivo}: {e}")
             
 
 
@@ -210,7 +191,7 @@ def baixar_diarios_e_converter_para_txt():
     spiders_executados = []
         
     for spider in spiders:
-        if spider.startswith("rj_itaperuna"):
+        if spider.startswith("rj_"):
             spiders_executados.append(spider)
             logger.info(f"🚀 Executando {spider}")
             subprocess.run(["scrapy", "crawl", spider, "-a", f"start_date={ontem_fmt_iso8601}", "-a", f"end_date={ontem_fmt_iso8601}", "-o", METADADOS, "-s", f"LOG_FILE={PASTA_ARQUIVOS}/log.txt"])
