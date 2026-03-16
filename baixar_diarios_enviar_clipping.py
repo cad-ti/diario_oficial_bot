@@ -191,7 +191,7 @@ def baixar_diarios_e_converter_para_txt():
     spiders_executados = []
         
     for spider in spiders:
-        if spider.startswith("rj_"):
+        if spider.startswith("rj_itaperuna"):
             spiders_executados.append(spider)
             logger.info(f"🚀 Executando {spider}")
             subprocess.run(["scrapy", "crawl", spider, "-a", f"start_date={ontem_fmt_iso8601}", "-a", f"end_date={ontem_fmt_iso8601}", "-o", METADADOS, "-s", f"LOG_FILE={PASTA_ARQUIVOS}/log.txt"])
