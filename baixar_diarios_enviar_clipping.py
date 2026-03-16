@@ -179,6 +179,7 @@ def pdf_com_imagem_para_txt(pdf_name):
 
         duracao = time.time() - inicio
         logger.info(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
+        logger.info(texto.strip)
 
     except Exception as e:
         logger.error(f"❌ Erro ao processar {pdf_name}: {e}")
