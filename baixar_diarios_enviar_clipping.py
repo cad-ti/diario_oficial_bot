@@ -176,7 +176,7 @@ def pdf_com_imagem_para_txt(pdf_name):
         with open(caminho_txt, "w", encoding="utf-8") as f:
             for pagina_num, texto in resultados:
                 f.write(f"\n--- Página {pagina_num + 1} ---\n{texto.strip()}\n")
-                logger.info(texto.strip)
+                logger.info(texto.strip())
 
         duracao = time.time() - inicio
         logger.info(f"✅ Gerado: {caminho_txt} ({duracao:.1f}s)")
