@@ -23,17 +23,17 @@ jobs:
           RUN_ID=$(gh run list --workflow "Envio dos Clippings" --json databaseId --jq '.[1].databaseId' || echo "")
           
           if [ -n "$RUN_ID" ]; then
-          echo "Baixando artefato da execução: $RUN_ID"
-          gh run download $RUN_ID --name ultima-edicao --dir .
+            echo "Baixando artefato da execução: $RUN_ID"
+            gh run download $RUN_ID --name ultima-edicao --dir .
           fi
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true  # não falha se não existir ainda
           
       - name: 🐍 Configurar Python
         uses: actions/setup-python@v4
         with:
-            python-version: '3.13'
+          python-version: '3.13'
             
       - name: 📦 Instalar dependências
         run: |
