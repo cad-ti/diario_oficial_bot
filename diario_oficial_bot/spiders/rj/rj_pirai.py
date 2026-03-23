@@ -4,6 +4,7 @@ import dateparser
 
 from diario_oficial_bot.items import Gazette
 from diario_oficial_bot.spiders.base import BaseGazetteSpider
+from diario_oficial_bot.utils.extraction import get_date_from_text
 
 from scrapy import Request
 
@@ -12,23 +13,26 @@ class RjPiraiSpider(BaseGazetteSpider):
     name = "rj_pirai"
     TERRITORY_ID = "3304003"  
     allowed_domains = ["transparencia.pirai.rj.gov.br", "pirai.rj.gov.br"]
+    start_urls = ["https://transparencia.pirai.rj.gov.br/boletins-informativos"]
     
-    start_urls = [
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2025",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2024",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2023",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2022",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2021",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2020",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2019",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2018",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2017",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2016",
-        "https://transparencia.pirai.rj.gov.br/boletins-informativos-2015",
-    ] 
-    start_date = date(2015, 1, 1)
+    def _parse(self, response):
+        year_links = response.xpath("//a[contains(@href, '/boletins-informativos-')]")
+        for link in year_links:
+            href = link.xpath("./@href").get()
+            
+            if not href:
+                continue
 
-    def parse(self, response):
+            year_match = re.search(r'(\d{4})', href)
+            if not year_match:
+                continue
+                
+            year = int(year_match.group(1))
+
+            if self.start_date.year <= year <= self.end_date.year:
+                yield response.follow(href, callback=self.parse_gazettes)
+    
+    def parse_gazettes(self, response):
         all_diario_links = response.xpath(
             "//p/a[contains(@href, '.pdf')]"
         )
@@ -52,13 +56,7 @@ class RjPiraiSpider(BaseGazetteSpider):
             if not edition_number or not raw_date_str:
                 continue
 
-            
-            date_obj = dateparser.parse(
-                    raw_date_str.strip(), 
-                    languages=["pt"],
-                    settings={'DATE_ORDER': 'DMY'} 
-                )
-            gazette_date = date_obj.date()
+            gazette_date = get_date_from_text(raw_date_str)
             
 
             if gazette_date > self.end_date:
