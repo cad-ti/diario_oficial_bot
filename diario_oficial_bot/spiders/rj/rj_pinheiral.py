@@ -56,5 +56,4 @@ class RjPinheiralSpider(BaseGazetteSpider):
             next_page_url = response.urljoin(next_page_relative)
             
             yield Request(next_page_url, callback=self.parse)
-        else:
-            self.logger.info("Fim da paginação. Nenhum link 'Próximo' encontrado.")
+        
