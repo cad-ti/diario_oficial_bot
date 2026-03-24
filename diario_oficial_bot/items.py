@@ -6,6 +6,7 @@ class Gazette(scrapy.Item):
     territory_id = scrapy.Field()
     date = scrapy.Field()
     edition_number = scrapy.Field()
+    image_pdf = scrapy.Field()
     is_extra_edition = scrapy.Field()
     power = scrapy.Field()
     file_urls = scrapy.Field()
