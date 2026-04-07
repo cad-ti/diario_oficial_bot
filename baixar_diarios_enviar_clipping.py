@@ -21,7 +21,7 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 from concurrent.futures import ProcessPoolExecutor
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pesquisa_textual import localizar_termo
@@ -178,7 +178,17 @@ def salvar_ultima_edicao_baixada(spiders):
     with open(METADADOS, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            ultima_edicao[row["name"]] = row["date"]
+            spider = row["name"]
+            data_atual = datetime.fromisoformat(row["date"])
+
+            data_salva = ultima_edicao.get(spider)
+
+            if data_salva:
+                data_salva = datetime.fromisoformat(data_salva)
+                if data_atual > data_salva:
+                    ultima_edicao[spider] = row["date"]
+            else:
+                ultima_edicao[spider] = row["date"]
 
     with open(ULTIMA_EDICAO, "w", encoding="utf-8") as f:
         json.dump(ultima_edicao, f, indent=4, ensure_ascii=False)
