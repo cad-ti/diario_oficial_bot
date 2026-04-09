@@ -34,7 +34,6 @@ class RjPatyDoAlferesSpider(BaseGazetteSpider):
                     "Referer": "https://patydoalferes.rj.gov.br/",
                     "X-Requested-With": "XMLHttpRequest",
                 },
-                #cb_kwargs={"year": year}
             )
 
     def parse(self, response):
@@ -57,7 +56,7 @@ class RjPatyDoAlferesSpider(BaseGazetteSpider):
                 return
             
             is_extra_edition = bool(complemento and complemento.strip())
-            #NAO ESTA FUNCIONANDO O EXTRA EDITION
+
             yield Gazette(
                 date=gazette_date,
                 file_urls=[url],
