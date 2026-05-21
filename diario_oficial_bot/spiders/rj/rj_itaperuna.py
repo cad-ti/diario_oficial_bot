@@ -59,5 +59,4 @@ class RjItaperunaSpider(BaseGazetteSpider):
                 file_urls=[file_url],
                 is_extra_edition=False,
                 power="executive",
-                image_pdf=True
             )
